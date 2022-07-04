@@ -10,32 +10,34 @@ public class Test {
  * @throws JSONException 
 */
 public static void main(String[] args) throws JSONException {
-String jsonString = "{\"a\":{\"b\":{\"c\":\"d\"}}}";
-String keyToFind = "c";
-System.out.println(getValueFromJsonStringByKey(jsonString, keyToFind));
-
+static AmazonEC2 ec2
+  ProfileCredentialsProvider credentialsProvider = new ProfileCredentialsProvider();
+		try {
+			credentialsProvider.getCredentials();
+		} catch (Exception e) {
+			throw new AmazonClientException("Cannot load the credentials from the credential profiles file. "
+					+ "Please make sure that your credentials file is at the correct ", e);
+		}
+		ec2 = AmazonEC2ClientBuilder.standard().withCredentials(credentialsProvider).withRegion("us-east-1").build();
+  // Getting instance Id
+		String instanceId = EC2MetadataUtils.getInstanceId();
+		 
+		// Getting EC2 private IP
+		String privateIP = EC2MetadataUtils.getInstanceInfo().getPrivateIp();
+		 
+		// Getting EC2 public IP
+		 ec2 = AmazonEC2ClientBuilder.defaultClient();
+		String publicIP = ec2.describeInstances(new DescribeInstancesRequest()
+		                     .withInstanceIds(instanceId))
+		                        .getReservations()
+		                        .stream()
+		                        .map(Reservation::getInstances)
+		                        .flatMap(List::stream)
+		                        .findFirst()
+		                        .map(Instance::getPublicIpAddress)
+		                        .orElse(null);
+  
+  
 }
-
-private static Object getValueFromJsonStringByKey(String jsonString, String keyToFind) throws JSONException {
-JSONObject jsonObject = new JSONObject(jsonString);
-Iterator<String> keys = jsonObject.keys();
-boolean keyFound = false;
-Object result = "No Key Found!!";
-try {
-while (!keyFound && keys.hasNext()) {
-String key = keys.next();
-if (keyToFind.equalsIgnoreCase(key)) {
-keyFound = true;
-result = jsonObject.get(key);
-} else if (jsonObject.getJSONObject(key) instanceof JSONObject) {
-jsonObject = jsonObject.getJSONObject(key);
-keys = jsonObject.keys();
-}
-}
-}catch(Exception ex) {
-System.out.println(ex.getMessage());
-}
-return result;
-}
-
+  //or we can simply call the metadata service using rest api call and parse the json using json parser like i have written code in challenge 3. this question is not giving much clarity so i need to discuss this first then can come with  solution
 }
